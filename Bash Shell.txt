@@ -1,0 +1,390 @@
+INTRO
+	Bash - Bourne Again Shell
+	semicolon(;) is used to run one command right after another
+	With &&, the command to the right will not run if the command to the left fails. But with ;, the second command will run even if the first one fails
+	Normally, when you execute a long-running command, the command line will wait for that command to finish before it allows you to enter another one. Putting '&' after a command prevents this from happening, and lets you execute a new command while an older one is still going
+	When we use '&' after a command to "hide" it, we say that the job/process is "backgrounded"
+	jobs - use this command to see what background jobs are currently running
+	some text editor - nano, vi, vim, gedit, notepad++, VSCode
+	vi text editor
+		To get into INPUT mode, press
+			i - To insert text before the cursor's current position
+			a - To append text after the cursor
+		Press 'Esc' to go back to command mode
+		Press 'Esc' and then ':'. The cursor will go to the bottom of the screen at a colon prompt. Write your file by entering ':w' and quit by entering ':q'. You can combine these to save and exit by entering ':wq'
+	Background a process with Ctrl+z
+	fg [job_spec] - Move job to the foreground. Place the job identified by JOB_SPEC in the foreground, making it the current job. If JOB_SPEC is not present, the shell's notion of the current job is used. 
+	Kill the current (foreground) process by pressing ^c (Ctrl+c) while it’s running. 
+	Kill a background process with kill %N where N is the job index shown by the jobs command
+	'sudo' and 'su' allow access to other commands as a different user
+		sudo - allows you to run programs with the security privileges of another user (by default, as the superuser). It prompts you for your personal password and confirms your request to execute a command by checking a file, called sudoers(locatd at /etc/sudoers), which the system administrator configures. Using the sudoers file, system administrators can give certain users or groups access to some or all commands without those users having to know the root password. It also logs all commands and arguments so there is a record of who used it for what, and when.
+		su - allows you to become another user. The user feature is optional; if you don't provide a user, the su command defaults to the root account, which in Unix is the system administrator account. In either case, you'll be prompted for the password associated with the account for which you're trying to run the command. If you supply a user, you will be logged in as that account until you exit it. To do so, press Ctrl-d or type exit at the command prompt.
+			To use the su command on a per-command basis, enter: su <user> -c <command>. 
+			To switch users before running many commands, enter: su <user>.
+	bash has two big features to help you complete and re-run commands -
+		tab completion - Simply type the first part of a command, hit the <tab> key, and let the terminal guess what you're trying to do. You may have to hit <TAB> multiple times if there's an ambiguity
+		history - bash keeps a short history of the commands you've typed previously and lets you search through those commands by typing 'Ctrl+r'
+	
+FIRST COMMANDS, NAVIGATING THE FILESYSTEM - pwd, ls, cd
+	Some filesystems have multiple root directories (like Windows' drives: C:\, A:\, etc.), but Unix and Unix-like systems only have a single root directory called '\'
+	pwd(Present Working Directory)
+	ls(list)
+		-a(all files)
+		-l(long format)
+		ls documents/*.html(list down all html files)
+		ls documents/*.*(list down all files in documents directory)
+		ls > out.txt
+	cd(change directory)
+		cd ..(go to parent directory)
+		cd ~(go to home directory)(usually /home/username or something similar)
+		cd ~user(cd to user's home directory)
+		cd .(. is shorthand for "this directory", so cd . won't do much of anything)
+		
+GETTING HELP - h, man
+	Type -h or --help after almost any command to bring up a help menu for that command
+	Type man before almost any command to bring up a manual for that command (quit man with q)
+	
+VIEWING AND EDITING FILES - head, tail, cat, less
+	'head' outputs the first few lines of a file. The -n flag specifies the number of lines to show (the default is 10)
+	tail outputs the last few lines of a file. 
+		tail -n 4 file.txt(prints the last four lines)
+		tail -n +4 file.txt(prints the end of the file, beginning with the 4th line)
+	'cat' concatenates a list of files and sends them to the standard output stream (usually the terminal)
+		cat file1 file2(prints content of file1 and file2)
+	'less' is another tool for quickly viewing a file. It opens up a vim-like read-only window. 'less' offers a superset of the functionality of 'more' and is recommended over it
+	
+CREATING AND DELETING FILES AND DIRECTORIES - touch, mkdir, rm, rmdir
+	vi newfile.txt(create and edit file)
+	touch newfile.txt(create file)
+	mkdir - used to create new, empty directories
+		-p( it will make all directories in the path if they don't already exist. For ex- mkdir -p d/e/f)
+	You can remove any file with 'rm'. But be careful, this is non-recoverable. You can add an "are you sure?" prompt with the -i flag(interactive)
+	rmdir removes empty directories only. But you can remove a directory and all of its contents with 'rm -rf'(-r = recursive, -f = force)
+	
+MOVING AND COPYING FILES, MAKING LINKS, COMMAND HISTORY - mv, cp, ln
+	mv - Rename SOURCE to DEST, or move SOURCE(s) to DIRECTORY
+		mv [OPTION]... [-T] SOURCE DEST                                                                                    
+		or:  mv [OPTION]... SOURCE... DIRECTORY                                                                                 
+		or:  mv [OPTION]... -t DIRECTORY SOURCE...
+		-f(force - do not prompt before overwriting)                                                         
+		-i(interactive - prompt before overwrite)                                                                   
+		-n(no-clobber - do not overwrite an existing file)                                                         
+		If you specify more than one of -i, -f, -n, only the final one takes effect
+	cp - Copy SOURCE to DEST, or multiple SOURCE(s) to DIRECTORY
+		cp [OPTION]... [-T] SOURCE DEST                                                                            
+		or:  cp [OPTION]... SOURCE... DIRECTORY
+		or:  cp [OPTION]... -t DIRECTORY SOURCE...
+	ln - Create hard links by default, symbolic(soft) links with --symbolic/-s. By default, each destination (name of new link) should not already exist.
+		[OPTION]... [-T] TARGET LINK_NAME(create a link to TARGET with the name LINK_NAME)                                                                                           
+		or:  ln [OPTION]... TARGET(create a link to TARGET in the current directory)                   
+		or:  ln [OPTION]... TARGET... DIRECTORY(create links to each TARGET in DIRECTORY)
+		or:  ln [OPTION]... -t DIRECTORY TARGET...(create links to each TARGET in DIRECTORY)
+		https://i.stack.imgur.com/ka2ab.jpg - 
+			$ echo 'Hello, World!' > myfile.txt - Create a name myfile.txt in the file system that points to a new inode (which contains the metadata for the file and points to the blocks of data that contain its contents, i.e. the text "Hello, World!")
+			$ ln myfile.txt my-hard-link - Create a hard link my-hard-link to the file myfile.txt, which means "create a file that should point to the same inode that myfile.txt points to"
+			$ ln -s myfile.txt my-soft-link - Create a soft link my-soft-link to the file myfile.txt, which means "create a file that should point to the file myfile.txt"
+			If myfile.txt is deleted (or moved) - my-hard-link still points to the same contents, and is thus unaffected, whereas my-soft-link now points to nothing.
+		Soft Link -
+			soft or symbolic is more of a short cut to the original file. If you delete or move the original the shortcut fails and if you only delete the short cut nothing happens to the original.
+			soft link points to the name of a file. If you delete original file and create a new file with the same name, then on 'cat soft-link.txt' you will get the content of the newly created file
+			You can make links to files and directories, and you can create links (shortcuts) on different partition and with a different inode number from original.
+			If the real copy is deleted, the link will not work.
+			Output - link -> ./Target_file
+		Hard Link -
+			Hard link is more of a mirror copy or multiple paths to the same file. Do something to file1 and it appears in file2. Deleting one still keeps the other ok.
+			The inode(or file) is only deleted when all the (hard)links or all the paths to the (same file)inode has been deleted.
+			Once a hard link has been made the link has the inode of the original file. Deleting renaming or moving the original file will not affect the hard link as it links to the underlying inode. Any changes to the data on the inode is reflected in all files that refer to that inode.
+			Hard links are for files only; you cannot link to a file on different partition with a different inode number.
+			If the real copy is deleted the link will work, because it accesses the underlying data the real copy was accessing.
+		Symbolic links have some features hard links are missing - 
+			Hard link point to the file content. while Soft link points to the file name.
+			while size of hard link is the size of the content while soft link is having the file name size.
+			Hard links share the same inode. Soft links do not.
+			Hard links can't cross file systems. Soft links do.
+			you know immediately where a symbolic link points to while with hard links, you need to explore the whole file system to find files sharing the same inode.
+			# find / -inum 517333
+				/home/bobbin/sync.sh
+				/root/synchro
+			hard-links cannot point to directories.
+
+DIRECTORY TREES, DISK USAGE, AND PROCESSES - tree, df, du, ps
+	tree - help you better visualize a directory's structure by printing a nicely-formatted directory tree
+		-L(restrict it to a certain number of levels)
+		--prune(hide empty directories in tree's output)
+	df(Disk Free) - used to show how much space is taken up by files for the disks or your system (hard drives, etc.)
+		-h(human-readable format. Some commands use this convention to display file / disk sizes with K for kilobytes, G for gigabytes, and so on, instead of writing out a gigantic integer number of bytes.)
+	du(Disk Usage) - shows file space usage for a particular directory and its subdirectories
+		--max-depth=N(shows directories N levels down (or fewer) from the specified directory)
+	ps(process status) - shows all of the user's currently-running processes (aka. jobs)
+	
+MISCELLANEOUS - passwd, logout, exit, clear, *
+	passwd - Change your account password. It will ask for your current password for verification, then ask you to enter the new password twice, so you don't make any typos
+	logout - exits a shell you’ve logged in to (where you have a user account)
+	exit - exits any kind of shell
+	clear - move the current terminal line to the top of the screen. This command just adds blank lines below the current prompt line. It's good for clearing your workspace
+	* - use it when looking for files. It can be used multiple times in a command and matches zero or more characters. eg- ls Git/Parser/source/PD*
+	
+DISK, MEMORY, AND PROCESSOR USAGE - ncdu, top, htop
+	ncdu(NCurses Disk Usage) - provides a navigable overview of file space usage, like an improved du. It opens a read-only vim-like window (press q to quit)
+	top  - displays all currently-running processes and their owners, memory usage, and more. 'htop' is an improved, interactive top. If you want a repetitive update of 'ps', use top
+		-u username(restrict the displayed processes to only those owner by username)
+	
+REPLS AND SOFTWARE VERSIONS
+	REPLs
+		A REPL is a Read-Evaluate-Print Loop, similar to the command line, but usually used for particular programming languages.
+		You can open the Python REPL with the 'python' command (and quit with the 'quit()' function)
+		Open the Java REPL with the 'jshell' command (and quit with the '/exit' command)
+		Alternatively, you can exit any of these REPLs with 'Ctrl+d'(it is the EOF (end of file) marker on Unix and signifies the end of input).
+	Most commands and programs have a -version or --version or -v flag which gives the software version of that command or program
+	Note that some programs use -v as a version flag, while others use -v to mean "verbose", which will run the application while printing lots of diagnostic or debugging information
+	
+ENVIRONMENT VARIABLES AND ALIASES
+	Environment Variables(env vars)
+		THey are persistent variables that can be created and used within your bash shell
+		They are defined with an equals sign (=) and used with a dollar sign ($). 
+			myvar=hello  #Set a new environment variable with an = sign (don't put any spaces before or after the =, though!)
+			echo $myvar  #Print a specific env var to the terminal with echo and a preceding $ sign
+		Note that reassigning a value to an env var overwrites it without warning
+		printenv - to see all currently-defined env vars
+		export - Another command to define Env vars(eg- export myvar="another one" && echo $myvar). When defined this way, they will also be available to sub-processes (commands called from this shell)
+		You can unset an environment variable by leaving the right-hand side of the = blank or by using the 'unset' command
+	Aliases
+		Aliases are similar to environment variables but are usually used to replace long commands with shorter ones
+			[ andrew@pc01 apidocs ]$ alias lc="ls -l -a -h -t"
+			[ andrew@pc01 apidocs ]$ lc
+		You can remove an alias with unalias
+			[ andrew@pc01 apidocs ]$ unalias lc
+			[ andrew@pc01 apidocs ]$ lc  #The program 'lc' is currently not installed. ...
+			
+BASIC BASH SCRIPTING
+	bash scripts (usually ending in .sh) allow you to automate complicated processes, packaging them into reusable functions. ex- echo "ls && touch file && ls" > ex.sh
+	A shell script can be executed with the source command or the sh command. ex- source ex.sh
+	An executable shell script(chmod +x ex2.sh) can be run by preceding it with ./. ex- ./ex2.sh
+	Long lines of code can be split by ending a command with \. ex- 
+		[ andrew@pc01 ~ ]$ echo "for i in {1..3}; do echo \
+		> \"Welcome \$i times\"; done" > ex3.sh
+		
+Config Files
+	If you tried the commands in the last section and logged out and back in, you may have noticed that your changes disappeared. 
+	config (configuration) files let you maintain settings for your shell or for a particular program every time you log in (or run that program). 
+	The main configuration file for a bash shell is the ~/.bashrc file. 
+	Aliases, environment variables, and functions added to ~/.bashrc will be available every time you log in. Commands in ~/.bashrc will be run every time you log in.
+	If you edit your ~/.bashrc file, you can reload it without logging out by using the source command- source ~/.bashrc
+	
+FINDING THINGS - whereis, which, whatis, locate, find
+	whereis - it searches for "possibly useful" files related to a particular command. It will attempt to return the location of the binary (executable machine code), source (code source files), and man page for that command.
+	which - it will only return the location of the binary (the command itself)
+		It is useful for finding the "original version" of a command which may be hidden by an alias -
+			[ andrew@pc01 ~ ]$ alias ls="ls -l"  # “original” ls has been “hidden” by the alias defined above
+			# but we can still call “original” ls by using the location returned by which
+			[ andrew@pc01 ~ ]$ /bin/ls
+	whatis - it prints out the one-line description of a command from its man page
+	locate - finds a file anywhere on the system by referring to a semi-regularly-updated cached list of files. Because it's just searching a list, 'locate' is usually faster than 'find'
+	find - iterates through the file system to find the file you're looking for. 
+		Because it's actually looking at the files which currently exist on the system, though, it will always return an up-to-date list of files, which is not necessarily true with locate
+		It has many more features than locate, and can search by file age, size, ownership, type, timestamp, permissions, depth within the file system.
+		It can search using regular expressions, execute commands on files it finds, and more
+		
+DOWNLOADING THINGS - ping, wget, curl, apt, gunzip, tar, gzip
+	ping - attempts to open a line of communication with a network host. Mainly, it's used to check whether or not your Internet connection is down
+	wget - used to easily download a file from the Internet
+	curl - used just like wget (don’t forget the --output flag)
+	curl and wget -
+		curl supports many more protocols and is more widely available than wget
+		curl can also send data, while wget can only receive data.
+		wget can download files recursively, while curl cannot.
+	apt -
+		Debian-descended Linux distributions have a fantastic package management tool called apt. 
+		It can be used to install, upgrade, or delete software on your machine. 
+		apt search - To search apt for a particular piece of software. ex- apt search bleachbit
+		apt install - To install a particular piece of software. ex- sudo apt install bleachbit
+	gunzip - used to unzip .tar.gz ("tarball") file to .tar file
+	tar -xf(-x for "extract", -f to specify the file to "untar") - tar -xf atom-amd64.tar && mv atom-beta-1.35.0-beta0-amd64 atom && ls
+	tar -zcf(-c for create, -z to zip the files) - tar -zcf compressed.tar.gz atom && ls
+	.tar files can also be zipped with 'gzip'
+	
+REDIRECTING INPUT AND OUTPUT - |, >, <, echo, printf, 0, 1, 2, tee
+	By default, shell commands read their input from the standard input stream (aka. stdin or 0) and write to the standard output stream (aka. stdout or 1), unless there’s an error, which is written to the standard error stream (aka. stderr or 2).
+	echo - writes text to stdout by default, which in most cases will simply print it to the terminal
+	printf - It is an improved echo, allowing formatting and escape sequences. ex- printf "1\n3\n2"
+	|(pipe operator) - redirects the output of the first command to the input of the second command. ex- echo "example document" | wc
+	> - redirects output from stdout to a particular location. ex- echo "test" > file
+	< - gets input from a particular location, rather than stdin. his causes data to "flow" right-to-left on the command line. ex- sort <(printf "1\n3\n2")
+	0, 1, and 2 are the standard input, output, and error streams, respectively. Input and output streams can be redirected with the |, >, and < operators, but stdin, stdout, and stderr can also be manipulated directly using their numeric identifiers. ex- echo "stdout" >&1
+	By default, stdout and stderr both print output to the terminal. 
+		Redirect stdout to /dev/null - echo "stdout" 1>/dev/null
+		Redirect all output to /dev/null - echo "stdout" &>/dev/null
+	tee - Redirect output to multiple files
+		[ andrew@pc01 ~ ]$ ls && echo "test" | tee file1 file2 file3 && ls
+		file0
+		test
+		file0  file1  file2  file3
+		
+SUPERUSER - whoami, sudo, su
+	whoami - check what your username
+	sudo -u <username> <command> - run a command as another user
+	su - su to become another user temporarily (and exit to switch back)
+	
+FILE PERMISSIONS - ls -lh, chmod, chown
+	Files may be able to be read (r), written to (w), and/or executed (x) by different users or groups of users, or not at all. File permissions can be seen with the ls -l command and are represented by 10 characters- 
+		first character of each line represents the type of file - d=directory, l=link, -=regular file, and so on
+		then there are three groups of three characters which represent the permissions held by the user (u) who owns the file, the permissions held by the group (g) which owns the file, and the permissions held any other (o) users
+		Number can also be used to represent permission. If x is enabled, the number is incremented by 1, if w is enabled, the number is incremented by 2, and if r is enabled, the number is incremented by 4. Note that these are equivalent to binary digits (r-x -> 101 -> 5, for example)
+	ls -l - First string is permission. The next two strings in each list are the name of the owner and the group.
+	If a directory is “executable”, that means it can be opened and its contents can be listed
+	chmod(change mode) - Change access permissions.
+		chmod 777 test  #by setting the access bits
+		chmod +rwx tist && chmod -w test  #by adding (+) or removing (-) r, w, and x permissions
+	chown(change owner) - Change the user who owns a file. ex- sudo chown marina test
+	chgrp(change group) - Change the group which owns a file. ex- sudo chgrp hadoop tist
+	
+USER AND GROUP MANAGEMENT
+	users - shows all users currently logged in. Note that a user can be logged in multiple times if, for instance, they're connected via multiple ssh sessions. To see all users (even those not logged in), check /etc/passwd
+	useradd - Add a user. ex- sudo useradd username
+	userdel - Delete a user. ex- sudo userdel username
+	usermod - Modify/Change a user’s default shell, username, password, or group membership
+	groups - shows all of the groups of which the current user is a member. To see all groups on the system, check /etc/group
+	groupadd - Add a group
+	groupdel - Delete a group
+	groupmod - Change a group’s name, ID number, or password
+	
+TEXT PROCESSING - uniq, sort, diff, cmp, cut, sed
+	uniq - print unique lines (default) or repeated lines
+	sort - sort lines alphabetically / numerically
+	diff - report which lines differ between two files
+	cmp - report which bytes differ between two files
+	ex -
+		[ andrew@pc01 man ]$ printf "1\n2\n2" > a && \> printf "1\n3\n2" > b
+		[ andrew@pc01 man ]$ uniq a
+		1
+		2
+		[ andrew@pc01 man ]$ sort b
+		1
+		2
+		3
+		[ andrew@pc01 man ]$ diff a b
+		2c2
+		< 2
+		---
+		> 3
+		[ andrew@pc01 man ]$ cmp a b
+		a b differ: char 3, line 2
+	cut - used to cut a line into sections on some delimiter.-d specifies the delimiter and -f specifies the field index to print (starting with 1 for the first field). ex- printf "137.99.234.23" > c && cut -d'.' c -f1  #137
+	sed - Stream EDitor
+		First SED reads a line from the input file quote.txt and stores it in its pattern buffer. Then it applies SED commands on the pattern buffer. In our case, no SED commands are there, hence no operation is performed on the pattern buffer. Finally it deletes and prints the contents of the pattern buffer on the standard output -
+			sh-4.4$ printf 'hello world\nritesh Raj\n' > new.txt                                   
+			sh-4.4$ sed '' new.txt                                                                                                    
+			hello world                                                                                                               
+			ritesh Raj  
+		flags
+			-e SCRIPT - Add the commands in SCRIPT to the set of commands to be run while processing the input.
+			-f SCRIPT-FILE - Add the commands contained in the file SCRIPT-FILE to the set of commands to be run while processing the input.
+			-n - By default, SED will print out the pattern space at then end of each cycle through the script.  These options disable this automatic printing, and SED will only produce output when explicitly told to via the `p' command
+		Delete Command - [address1[,address2]]d, where address1 and address2 are the starting and the ending addresses respectively, which can be either line numbers or pattern strings. Both of these addresses are optional parameters. This does not delete from the actual file but from the pattern buffer
+			sed 'd' books.txt - deletes all the lines from the pattern buffer
+			sed '4d' books.txt - removes the 4th line only
+			sed '2, 4 d' books.txt - deletes all the lines from 2 through 4
+			sed -e '1d' -e '2d' -e '5d' books.txt - delete three lines. We have specified three separate commands with -e option
+			sed '/Paulo Coelho/d' books.txt - removes all lines which contain string 'Paulo Coelho'
+			sed '/Storm/,/Fellowship/d' books.txt - removes all lines between the patterns 'Storm' and 'Fellowship'
+		Write Command - [address1[,address2]]w, Ths creates a new specified file
+			sed -n 'w books.bak' books.txt - creates another file called books.bak having same content as of books.txt
+			sed -n '2~2 w junk.txt' books.txt - store only even lines to another file.
+			sed -n -e '/Martin/ w Martin.txt' books.txt - we are matching each line against a pattern and storing the matched line in a particular file. 
+		Append Command - [address]a Append Text
+			sed '4 a 7) Adultry, Paulo Coelho, 234' books.txt - append a new book entry after line number 4
+			sed '$ a 7) Adultry, Paulo Coelho, 234' books.txt - append a new book entry at the end of the file
+			sed '/The Alchemist/ a 7) Adultry, Paulo Coelho, 234' books.txt - adds text in next line after matching the string The Alchemist. Note that if there are multiple patterns matching, then the text is appended after each match
+		Change Command - [address1[,address2]]c Replace text	
+			sed '3 c 3) Adultry, Paulo Coelho, 324' books.txt - replace the third line with some other text
+			sed '/The Alchemist/ c 3) Adultry, Paulo Coelho, 324' books.txt - a line is replaced when the pattern match succeeds
+			sed '4, 6 c 4) Adultry, Paulo Coelho, 324' books.txt - removes lines from fourth through sixth and replaces them with new text
+		Insert Command - The insert command works much in the same way as append does. The only difference is that it inserts a line BEFORE a specific position
+			sed '4 i 7) Adultry, Paulo Coelho, 324' books.txt - inserts a new entry before the fourth line
+			
+STANDARD REGULAR EXPRESSIONS
+	Start of line (^) - 
+		sed -n '/^The/ p' books.txt - prints all the lines that start with the pattern "The".
+	End of Line ($)
+	Single Character (.) - matches any single character except the end of line character
+		echo -e "cat\nbat\nrat\nmat\nbatting\nrats\nmats" | sed -n '/^..t$/p' - prints all three letter words that end with the character "t"
+	Match Character Set ([]) - match only one out of several characters
+		echo -e "Call\nTall\nBall" | sed -n '/[CT]all/ p' - matches the patterns "Call" and "Tall" but not "Ball"
+	Exclusive Set ([^]) - the caret negates the set of characters in the square brackets
+		echo -e "Call\nTall\nBall" | sed -n '/[^CT]all/ p' - prints only "Ball"
+	Character Range ([-]) - matches any character within the range specified in square brackets
+		echo -e "Call\nTall\nBall" | sed -n '/[C-Z]all/ p'  - matches "Call" and "Tall" but not "Ball"
+	Zero on One Occurrence (\?) - matches zero or one occurrence of the preceding character
+		echo -e "Behaviour\nBehavior" | sed -n '/Behaviou\?r/ p' - matches "Behaviour" as well as "Behavior". Here, we made "u" as an optional character by using "\?"
+	One or More Occurrence (\+)
+		echo -e "111\n22\n123\n234\n456\n222"  | sed -n '/2\+/ p' - matches one or more occurrences of "2"
+	Zero or More Occurrence (*)
+		echo -e "ca\ncat" | sed -n '/cat*/ p' - matches "ca", "cat", "catt", and so on
+	Exactly N Occurrences {n} - matches exactly "n" occurrences of the preceding character
+		sed -n '/^[0-9]\{3\}$/ p' numbers.txt  #100
+	At least n Occurrences {n,}
+	M to N Occurrence {m,n}
+	Pipe (|) - matches items from either side of the pipe. Behaves like logical OR operation
+		echo -e "str1\nstr2\nstr3\nstr4" | sed -n '/str\(1\|3\)/ p' - either matches "str1" or "str3"
+	POSIX classes - certain reserved words which have special meaning
+		[:alnum:] - alphabetical and numeric characters. ex- echo -e "One\n123\n\t" | sed -n '/[[:alnum:]]/ p'
+		[:alpha:] - alphabetical characters only
+		[:digit:] - decimal numbers only
+		[:lower:] - lowercase letters only
+		[:upper:] - uppercase letters only
+		[:blank:] - blank character which can be either space or tab
+		[:space:] - whitespace characters
+		[:punct:] - punctuation marks
+	Metacharacters - 
+		Word Boundary (\b) - For example, "\bthe\b" matches "the" but not "these", "there", "they", "then", and so on.
+		Non-Word Boundary (\B) - For example, "the\B" matches "these" and "they" but not "the"
+		Single Whitespace (\s) - matches space or tab 
+		Single Non-Whitespace (\S)
+		Single Word Character (\w) - alphabetical characters, digits, and underscore (_)
+		Single Non-Word Character (\W)
+
+		
+		
+		
+	
+	
+	
+	
+
+	
+	
+	
+	
+
+
+
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
