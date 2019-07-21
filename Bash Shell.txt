@@ -24,6 +24,8 @@ INTRO
 	bash has two big features to help you complete and re-run commands -
 		tab completion - Simply type the first part of a command, hit the <tab> key, and let the terminal guess what you're trying to do. You may have to hit <TAB> multiple times if there's an ambiguity
 		history - bash keeps a short history of the commands you've typed previously and lets you search through those commands by typing 'Ctrl+r'
+	(()) - numeric calculation
+	[[]] - command condition
 	
 FIRST COMMANDS, NAVIGATING THE FILESYSTEM - pwd, ls, cd
 	Some filesystems have multiple root directories (like Windows' drives: C:\, A:\, etc.), but Unix and Unix-like systems only have a single root directory called '\'
@@ -225,7 +227,7 @@ SUPERUSER - whoami, sudo, su
 	sudo -u <username> <command> - run a command as another user
 	su - su to become another user temporarily (and exit to switch back)
 	
-FILE PERMISSIONS - ls -lh, chmod, chown
+FILE PERMISSIONS - ls -lh, chmod, chown, chgrp, umask
 	Files may be able to be read (r), written to (w), and/or executed (x) by different users or groups of users, or not at all. File permissions can be seen with the ls -l command and are represented by 10 characters- 
 		first character of each line represents the type of file - d=directory, l=link, -=regular file, and so on
 		then there are three groups of three characters which represent the permissions held by the user (u) who owns the file, the permissions held by the group (g) which owns the file, and the permissions held any other (o) users
@@ -237,6 +239,8 @@ FILE PERMISSIONS - ls -lh, chmod, chown
 		chmod +rwx tist && chmod -w test  #by adding (+) or removing (-) r, w, and x permissions
 	chown(change owner) - Change the user who owns a file. ex- sudo chown marina test
 	chgrp(change group) - Change the group which owns a file. ex- sudo chgrp hadoop tist
+	umask(user mask) - change the default permissions given to newly created files
+		You can set umask in /etc/bashrc or /etc/profile for all users. By default most Linux distros will set it to 022. If mode begins with a digit, it is interpreted as an octal number; if not, it is interpreted as a symbolic mode mask similar to that accepted by the chmod command. Note that when the mode is interpreted as an octal number, each number of the umask is subtracted from 7. Thus, a umask of 022 results in permissions of 755.
 	
 USER AND GROUP MANAGEMENT
 	users - shows all users currently logged in. Note that a user can be logged in multiple times if, for instance, they're connected via multiple ssh sessions. To see all users (even those not logged in), check /etc/passwd
@@ -343,48 +347,187 @@ STANDARD REGULAR EXPRESSIONS
 		Single Word Character (\w) - alphabetical characters, digits, and underscore (_)
 		Single Non-Word Character (\W)
 
+PATTERN MATCHING - grep, awk
+	grep - search Globally for Regular Expression and Print it
+		Search file(s) for lines that match a given pattern
+		flags
+			-E - Interpret PATTERN as an extended regular expression
+			-F - Interpret PATTERN as a list of fixed strings, separated by newlines, any of which is to be matched.
+			-v - Invert the sense of matching, to select non-matching lines
+			-x - Select only those matches that exactly match the whole line
+			-r - recursively searching files within a directory
+		grep -v [aeiou] wordlist.txt - Search the file wordlist.txt for any lines that don't include at least one vowel
+		grep -F -x -v -f paid.txt invoices.txt >paidinvoices.txt - Remove lines from invoices.txt if they appear in paid.txt
+	awk - pattern-matching language built around reading and manipulating delimited data files, like CSV files. As a rule of thumb, grep is good for finding strings and patterns in files, sed is good for one-to-one replacement of strings in files, and awk is good for extracting strings and patterns from files and analysing them.		
+
+COPYING FILES OVER SSH - ssh, scp, rsync
+	'ssh' is how Unix-based machines connect to each other over a network
+	scp - secure copy. 
+		note that scp uses –P to provide port value, ssh uses –p
+		scp /home/simon/file1 kate@ss64.com:/home/kate - Copy file1 to a remote host
+	rsync - Remote file copy. Synchronize file trees across local disks, directories or across a network
+		syntax - rsync [option]... Source... Dest
+		rsync is a file-copying tool which minimises the amount of data copied by looking for deltas (changes) between files.
+		Suppose we have two directories: d, with one file, and s, with two files. Sync the directories (copying only missing data) with rsync - [ andrew@pc01 d ]$ rsync -av ../s/* .
+		rsync -avz -e "ssh -p <port>" andrew@137.xxx.xxx.79:~/s/* . - syncing all files from remote machine to current local directory
 		
-		
-		
-	
-	
-	
-	
-
-	
-	
-	
-	
-
-
-
-
-
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+BASH SCRIPTING
+	Basic
+		#!/usr/bin/env bash
+		NAME="John"
+		echo $NAME  #=> John
+		echo "Hi $NAME" or echo "Hi ${NAME}"  #=> Hi John
+		echo 'Hi $NAME'  #=> Hi $NAME
+	Variable
+		name="John"
+		STR="/path/to/foo.cpp"
+		substitution
+			${FOO%suffix}(Remove suffix) -
+				echo ${STR%.cpp}  # /path/to/foo
+				echo ${STR%.cpp}.o  # /path/to/foo.o
+			${FOO#prefix}(Remove prefix) - 
+				echo ${STR#*/}  # path/to/foo.cpp
+			${FOO%%suffix}(Remove long suffix) -
+			${FOO##prefix}(Remove long prefix) - 
+				echo ${STR##*.}  # cpp (extension)
+				echo ${STR##*/}  # foo.cpp (basepath)
+			${FOO/from/to}(Replace first match) -
+				echo ${STR/foo/bar}  # /path/to/bar.cpp
+			${FOO//from/to}(Replace all) -
+			${FOO/%from/to}(Replace suffix) -
+			${FOO/#from/to}(Replace prefix) -
+		substring
+			${FOO:0:3} - Substring (position, length) - Position starts from 0
+				echo ${name:0:2}  #=> "Jo"
+				echo ${name::2}  #=> "Jo"
+				echo ${name::-1}  #=> "Joh" (length is 3(total_length - 1))
+			${FOO:-3:3} - Substring from the right
+				echo ${name:(-1)}  #=> "n"
+				echo ${name:(-2):1}  #=> "h"
+		length - ${#FOO}  #=> Length of $FOO
+		case -
+			STR="HELLO WORLD!"
+			echo ${STR,}  #=> "hELLO WORLD!" (lowercase 1st letter)
+			echo ${STR,,}  #=> "hello world!" (all lowercase)
+			STR="hello world!"
+			echo ${STR^}  #=> "Hello world!" (uppercase 1st letter)
+			echo ${STR^^}  #=> "HELLO WORLD!" (all uppercase)
+		default values - The : is optional (eg, ${FOO=word} works)
+			${FOO:-val}  #=>$FOO, or val if not set
+			${FOO:=val}  #=>Set $FOO to val if not set
+			${FOO:+val}  #=>val if $FOO is set
+			${FOO:?message}  #=>Show error message and exit if $FOO is not set
+	Function
+		Parameter
+			function myfunc() { echo "hello $1" }  #'function' keyword is optional
+			myfunc "John"
+		Return Value
+			myfunc() { echo 'some value' }
+			result="$(myfunc)"
+		Raising errors
+			myfunc() { return 1 }
+			if myfunc; then
+				echo "success"
+			else
+				echo "failure"
+			fi
+		Arguments
+			$#	Number of arguments
+			$*	All arguments
+			$1	First argument
+	Shell execution
+		echo "I'm in $(pwd)" #same as
+		echo "I'm in `pwd`"
+	Condition
+		[[ -z STRING ]]	Empty string
+		[[ -n STRING ]]	Not empty string
+		[[ STRING == STRING ]]	Equal
+		[[ STRING != STRING ]]	Not Equal
+		[[ NUM -eq NUM ]]	Equal
+		[[ NUM -ne NUM ]]	Not equal
+		[[ NUM -lt NUM ]]	Less than
+		[[ NUM -le NUM ]]	Less than or equal
+		[[ NUM -gt NUM ]]	Greater than
+		[[ NUM -ge NUM ]]	Greater than or equal
+		(( NUM < NUM ))	Numeric conditions
+		[[ ! EXPR ]]	Not
+		[[ X ]] && [[ Y ]]	And
+		[[ X ]] || [[ Y ]]	Or
+		[[ -e FILE ]]	Exists
+		[[ -r FILE ]]	Readable
+		[[ -w FILE ]]	Writable
+		[[ -x FILE ]]	Executable
+		[[ -h FILE ]]	Symlink
+		[[ -f FILE ]]	File
+		[[ -d FILE ]]	Directory
+		[[ -s FILE ]]	Size is > 0 bytes
+		[[ FILE1 -nt FILE2 ]]	1 is newer(more recent) than 2
+		[[ FILE1 -ot FILE2 ]]	1 is older than 2
+		[[ FILE1 -ef FILE2 ]]	Same files
+	If Else
+		if [[ -z "$string" ]]; then
+			echo "String is empty"
+		elif [[ -n "$string" ]]; then
+			echo "String is not empty"
+		fi
+	Loops
+		Basic for loop
+			for i in /etc/rc.*; do
+				echo $i
+			done
+		C-like for loop
+			for ((i = 0 ; i < 100 ; i++)); do
+				echo $i
+			done
+		Ranges with default step (ie 1)
+			for i in {1..5}; do
+				echo "Welcome $i"
+			done
+		Ranges with step size
+			for i in {5..50..5}; do
+				echo "Welcome $i"
+			done
+		Reading lines
+			< file.txt | while read line; do
+				echo $line
+			done
+		Forever
+			while true; do
+				···
+			done
+	Brace expansion
+		echo {A,B}  #Same as A B
+		echo{A,B}.js  #Same as A.js B.js
+		echo{1..5}  #Same as 1 2 3 4 5
+	Arrays
+		Fruits=('Apple' 'Banana' 'Orange')  # Defining arrays
+		echo ${Fruits[0]}           # Element #0
+		echo ${Fruits[@]}           # All elements, space-separated
+		echo ${#Fruits[@]}          # Number of elements
+		echo ${#Fruits}             # String length of the 1st element
+		echo ${#Fruits[3]}          # String length of the Nth element
+		echo ${Fruits[@]:3:2}       # Range (from position 3, length 2)
+		Operations
+			Fruits=("${Fruits[@]}" "Watermelon")    # Push
+			Fruits+=('Watermelon')                  # Also Push
+			Fruits=( ${Fruits[@]/Ap*/} )            # Remove by regex match
+			unset Fruits[2]                         # Remove one item
+			Fruits=("${Fruits[@]}")                 # Duplicate
+			Fruits=("${Fruits[@]}" "${Veggies[@]}") # Concatenate
+			lines=(`cat "logfile"`)                 # Read from file
+		Iteration
+			for i in "${arrayName[@]}"; do
+				echo $i
+			done
+	Dictionaries - associative array
+		Defining
+			declare -A sounds
+			sounds[dog]="bark"
+			sounds[cow]="moo"
+			sounds[bird]="tweet"
+			sounds[wolf]="howl"
+		echo ${sounds[dog]} # Dog's sound
+		echo ${sounds[@]}   # All values
+		echo ${!sounds[@]}  # All keys
+		echo ${#sounds[@]}  # Number of elements
+		unset sounds[dog]   # Delete dog
