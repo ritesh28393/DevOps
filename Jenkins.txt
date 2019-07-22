@@ -1,0 +1,190 @@
+INTRO
+	Continuous Integration is a software development practice in which developers are required to frequently commit changes to the source code in a shared repository. Each commit is then continuously pulled & built. 
+	Jenkins is an open source, Continuous Integration (CI) tool. It continuously pulls, builds and tests any code commits made by a developer with the help of plugins.
+	Slave/Agent - It is typically a machine, or container, which connects to a Jenkins master and executes tasks when directed by the master.
+	Executor - A slot for execution of work defined by Project/Job. A Node may have zero or more Executors configured which corresponds to how many concurrent Projects or Pipelines are able to execute on that Node.
+	Label - User-defined text for grouping Agents, typically by similar functionality or capability. For example linux for Linux-based agents or docker for Docker-capable agents.
+	Workspace/directory - It is specific to a Job. It is where work can be done on files checked out from source control. Jenkins uses the name of the Pipeline to create directories on disk. Pipeline names which include spaces may uncover bugs in scripts which do not expect paths to contain spaces.
+	Schedule a build periodically - 
+		Syntax: (Minute Hour DayOfMonth(1-31) Month(1-12) DayOfWeek(0-7, where 0 and 7 are Sunday))
+		Example: H/2 * * * * (schedule your build for every 2 minutes)
+	Build
+		<build.url>/stop - aborts a Pipeline.
+		<build.url>/term - forcibly terminates a build (should only be used if stop does not work.
+		<build.url>/kill - hard kill a pipeline. This is the most destructive way to stop a pipeline and should only be used as a last resort.
+	Server
+		Using BASH - $ sudo service jenkins restart/stop/start
+		<jenkins.server.url>/restart
+		<jenkins.server.url>/safeRestart - Puts Jenkins into the quiet mode, wait for existing builds to be completed, and then restart Jenkins
+		<jenkins.server.url>/exit
+		<jenkins.server.url>/safeExit - Puts Jenkins into the quiet mode, wait for existing builds to be completed, and then shut down Jenkins
+		<jenkins.server.url>/quietDown - Puts Jenkins in a Quiet mode, in preparation for a restart. In that mode Jenkins don’t start any build
+		<jenkins.server.url>/cancelQuietDown - Cancel the effect of the “quiet-down” command
+INSTALLATION (on ubuntu)
+	Step 1: Install Java
+		$ sudo apt update
+		$ sudo apt install openjdk-8-jdk
+	Step 2: Download Jenkins Repository and add it to the system
+		$ wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add –
+		$ sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+	Step 3: Install Jenkins
+		$ sudo apt update
+		$ sudo apt install Jenkins
+	Step 4: Once Jenkins is up and running, access it from the link:
+		http://localhost:8080
+	If your /etc/init.d/jenkins file fails to start Jenkins, edit the $JENKINS_HOME/config.xml to replace the line ----HTTP_PORT=8080---- with ----HTTP_PORT=8081---- Here, "8081" was chosen but you can put another port available.
+	Post-installation setup wizard
+		Unlocking Jenkins
+		Creating the first administrator user
+		
+MANAGE JENKINS - Jenkins Dashboard -> Manage Jenkins
+	Configure System -
+		Can be used to manage paths to various tools to use in builds.
+		Jenkins dynamically adds the config fields after the plugins are installed.
+	Manage Plugins - Plugins can be removed, updated and installed through manage plugin screen.
+	System Info -
+		List all the current java properties and system environment variables.
+		System log - view Jenkins log in real time.
+		Script console - lets you run groovy scripts on the server.
+		Manage nodes - configure the number of builds you want.
+		Shutdown - click prepare to shutdown link to prevent any new builds from being started. After all current builds are finished, Jenkins will shut down cleanly.
+	Configure Global Security -
+		Ability to have secure config for different users.
+		Add the users and go-to ‘manage users’ option to provide permissions
+		To set authorizations, and click on matrix-based security
+		
+PLUGINS - Jenkins Dashboard -> Manage Jenkins -> Manage Plugins
+	To uninstall plugins, go-to manage plugins and click on the installed tab and click on uninstall for the plugin. Ensure to restart Jenkins for changes to take effect
+	In Case of need to install an older version of the plugin, download from the site and click on Upload option to do it manually.
+
+BUILD PIPELINE
+	Build pipeline can be used to chain several jobs together and run them in a sequence
+	Before using it, you have to add this plugin
+	Example - 
+		Step 1: Create 3 freestyle Jobs (Job1, Job2, Job3)
+		Step 2: Chain the 3 Jobs together
+			Job1 -> configure -> Post Build -> Build other projects -> Job2
+			Job2 -> configure -> Post Build -> Build other projects -> Job3
+		Step 3: Create a build pipeline view
+			Jenkins Dashboard -> Add view -> Enter a name -> Build pipeline view -> ok -> configure -> Pipeline flow -> Select Initial job -> Job1 -> ok
+		Step 4: Run the Build Pipeline
+
+DIFFERENT TYPES OF JENKINS JOBS
+	Freestyle - Freestyle build jobs are general-purpose build jobs, which provides maximum flexibility. It can be used for any type of project.
+	Pipeline - This project runs the entire software development workflow as code. You can code the entire workflow and put it in a Jenkinsfile
+	Multiconfiguration - The multiconfiguration project allows you to run the same build job on different environments. It is used for testing an application in different environments.
+	
+JENKINSFILE	- can only be used when creating pipeline-type job
+	The first line of a Jenkinsfile should be #!/usr/bin/env groovy
+	It can be written based on two syntaxes -
+		Scripted pipeline - Code is written on the Jenkins UI instance and is enclosed within the node block
+			node {
+				scripted pipeline code
+			}
+		Declarative pipeline - Code is written in 'Jenkinsfile' file which can be checked into a project’s source control repository
+			pipeline {
+				declarative pipeline code
+			}
+	Pipeline - A user defined block which contains all the stages. It is a key part of declarative pipeline syntax.
+	Node - A node is a machine that executes an entire workflow. It is a key part of the scripted pipeline syntax.
+	Agent - It indicates that Jenkins should allocate an executor and workspace/directory for this part of the Pipeline.
+	Stages - It contains all the work; each stage performs a specific task.
+	Steps - steps are carried out in sequence to execute a stage
+	example -
+		node {
+			stage(‘SCM checkout’) {
+				//Checkout from your SCM(Source Control Management)
+				//For eg: Git Checkout
+			}
+			stage(‘Build’) {
+				//Compile code
+				//Install dependencies
+				//Perform Unit Test, Integration Test
+			}
+			stage(‘Test’) {
+				//Resolve test server dependencies
+				//Perform UAT
+			}
+			stage(‘Deploy’) {
+				//Deploy code to prod server
+				//Solve dependency issues
+			}
+		}
+	Snippet Generator - localhost:8080/pipeline-syntax
+	Global Variable Reference - localhost:8080/pipeline-syntax/globals
+		Like the Snippet Generator, it is also dynamically populated by plugins. 
+		Unlike the Snippet Generator however, the Global Variable Reference only contains documentation for variables provided by Pipeline or plugins, which are available for Pipelines
+		
+	
+		
+UNIT TESTING
+	Provides a host of plugins for unit testing of other technologies such as MS Test for .net unit testing.
+	Java UT -
+		Step 1: Open the dashboard, choose an existing project and click configure.
+		Step 2: Browse towards add a build step and invoke Ant.
+		Step 3: Click on advanced.
+		Step 4: Enter the location of build.xml in the build file section.
+		Step 5: Click the Add post-build option and click on Publish Junit test result report.
+		Step 6: Ensure the report is in the folder of the project workspace. The “*.xml” basically tells Jenkins to pick up the result xml files which are produced by running of the Junit test cases. Click Save after done.
+		Step 7: Click on build and check logs to see if it is successful or not.
+			
+AUTOMATED TESTING
+	Selenium - 
+		Step 1: go to plugins and choose selenium plugins and click to install.
+		Step 2: go to configure system and select on selenium jar and save
+		Step 3: Go to dashboard and select the config option for the project at hand
+		Step 4: Click on add build step and choose Selenium HQ html Suite Run
+		Step 5: Add the required details and click on save, execute and build. The test is executed, and a report is built.
+		
+NOTIFICATIONS
+	Jenkins comes with a feature to add email notifications to the build project
+	Go-to Manage Jenkins → Configure System. In the email notification space enter the require STMP server and use email suffixes.
+	Configure the recipients so that they would receive notification about broken or unstable builds
+	Notification plugins such as Tikal Knowledge allows job status notification for JSON and XML formats.
+	
+CODE ANALYSIS
+	They provide utilities for static code analysis. Some tools are CheckStyle, FindBugs, PMD etc.
+	Provides details like - Total warning in a job, Showing of new and fixed warning of a build, Trend reports showing warnings per build, Detailed reports of found warnings.
+	
+AUTOMATED DEPLOYMENT
+	There are plugins available to transfer build files to the server. E.g., deploy to container plugin. Head to the manage plugins and install the respective plugins.
+	It takes the war ear file and deploys that to the running remote application build.
+	Go-to build and configure and click on ‘deploy to war/ear to container’.
+	In the war container section save details about the destination server and click save.
+	
+https://jenkins.io/user-handbook.pdf - page 36(Using a Jenkinsfile)
+https://www.tutorialspoint.com/jenkins/
+https://jenkins.io/doc/tutorials - do handson on google cloud
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
