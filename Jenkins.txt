@@ -79,11 +79,36 @@ JENKINSFILE	- can only be used when creating pipeline-type job
 	It can be written based on two syntaxes -
 		Scripted pipeline - Code is written on the Jenkins UI instance and is enclosed within the node block
 			node {
-				scripted pipeline code
+				stage('Build') {
+					echo 'Building....'
+				}
+				stage('Test') {
+					echo 'Testing....'
+				}
+				stage('Deploy') {
+					echo 'Deploying....'
+				}
 			}
 		Declarative pipeline - Code is written in 'Jenkinsfile' file which can be checked into a project’s source control repository
 			pipeline {
-				declarative pipeline code
+				agent any  // The agent directive, which is required, instructs Jenkins to allocate an executor and workspace for the Pipeline.
+				stages {
+					stage('Build') {
+						steps {
+							echo 'Building..'
+						}
+					}
+					stage('Test') {
+						steps {
+							echo 'Testing..'
+						}
+					}
+					stage('Deploy') {
+						steps {
+							echo 'Deploying....'
+						}
+					}
+				}
 			}
 	Pipeline - A user defined block which contains all the stages. It is a key part of declarative pipeline syntax.
 	Node - A node is a machine that executes an entire workflow. It is a key part of the scripted pipeline syntax.
@@ -114,8 +139,194 @@ JENKINSFILE	- can only be used when creating pipeline-type job
 	Global Variable Reference - localhost:8080/pipeline-syntax/globals
 		Like the Snippet Generator, it is also dynamically populated by plugins. 
 		Unlike the Snippet Generator however, the Global Variable Reference only contains documentation for variables provided by Pipeline or plugins, which are available for Pipelines
+	Code snippet
+		checkout scm - The checkout step will checkout code from source control; scm is a special variable which instructs the checkout step to clone the specific revision which triggered this Pipeline run
+		git url: 'git://example.com/amazing-project.git', branch: 'master' - consider this as a function where 'git' is the function name and 'url' and 'branch' are the named-parameters
+		The sh step assumes the system is Unix/Linux-based, for Windows-based systems the bat could be used instead.
+		`make check` returns non-zero on test failures
+		Pipeline will only continue if a zero exit code is returned by the 'sh' command. Any non-zero exit code will fail the Pipeline. Inline shell conditional (sh 'make || true') ensures that the sh step always sees a zero exit code.
+		The "Deploy" stage will only execute assuming previous stages completed successfully, otherwise the Pipeline would have exited early. Accessing the currentBuild.result variable allows the Pipeline to determine if there were any test failures. In which case, the value would be UNSTABLE.
+			Declarative Pipeline
+				stage('Deploy') {
+					when {
+						expression {
+							currentBuild.result == null || currentBuild.result == 'SUCCESS'
+						}
+					}
+					steps {
+						sh 'make publish'
+					}
+				}
+			Script Pipeline
+				stage('Deploy') {
+					if (currentBuild.result == null || currentBuild.result == 'SUCCESS') {
+						sh 'make publish'
+					}
+				}
+				
+ADVANCED SYNTAX FOR PIPELINE
+	String Interpolation -
+		def username = 'Jenkins'
+		echo 'Hello Mr. ${username}'  #=> Hello Mr. ${username}
+		echo "I said, Hello Mr. ${username}"  #=> I said, Hello Mr. Jenkins
+	Working with the Environment - 
+		Jenkins Pipeline exposes environment variables via the global variable env, which is available from anywhere within a Jenkinsfile. ex- env.BUILD_ID, env.JOB_NAME, env.JENKINS_URL
+		Setting an environment variable within a Jenkins Pipeline for -
+			Declarative Pipeline - supports an environment directive. An environment directive used in the top-level pipeline block will apply to all steps within the Pipeline. An environment directive defined within a stage will only apply the given environment variables to steps within the stage
+				environment {
+					CC = 'clang'
+				}
+			Script Pipeline - must use the withEnv step
+				withEnv(["PATH+MAVEN=${tool 'M3'}/bin"]) {
+					sh 'mvn -B verify'
+				}
+	Parameters - Declarative Pipeline supports parameters out-of-the-box, allowing the Pipeline to accept user specified parameters at runtime via the parameters directive. Configuring parameters with Scripted Pipeline is done with the properties step, which can be found in the Snippet Generator
+		Declarative Pipeline
+			parameters {
+				string(name: 'Greeting', defaultValue: 'Hello', description: 'How should I greet the world?')
+			}
+			....
+			echo "${params.Greeting} World!"
+		Script Pipeline
+			properties([parameters([string(defaultValue: 'Hello', description: 'How should I greet the world?', name: 'Greeting')])])
+	Handling Failures -
+		Declarative Pipeline supports robust failure handling by default via its post section which allows declaring a number of different "post conditions" such as: always, unstable, success, failure, and changed
+			stages { ... }
+			post {
+				always {
+					junit '**/target/*.xml'
+				}
+				failure {
+					mail to: team@example.com, subject: 'The Pipeline failed :('
+				}
+			}
+		Scripted Pipeline however relies on Groovy’s built-in try/catch/finally semantics for handling failures during execution of the Pipeline.
+			stage('Test') {
+				try {
+					sh 'make check'
+				}
+				finally {
+					junit '**/target/*.xml'
+				}
+			}
+		In the [test] example above, the sh step was modified to never return a non-zero exit code (sh 'make check || true'). This approach, while valid, means the following stages need to check currentBuild.result to know if there has been a test failure or not. An alternative way of handling this, which preserves the early-exit behavior of failures in Pipeline, while still giving junit the chance to capture test reports, is to use a series of try /finally blocks
+	Using multiple agents
+		pipeline {  // declarative pipeline
+			agent none
+			stages {
+				stage('Build') {
+					agent any
+					steps {
+						checkout scm
+						sh 'make'
+						stash includes: '**/target/*.jar', name: 'app'  // The stash step allows capturing files matching an inclusion pattern (*/target/.jar) for reuse within the same Pipeline. Once the Pipeline has completed its execution, stashed files are deleted from the Jenkins master.
+					}
+				}
+				stage('Test on Linux') {
+					agent {
+						label 'linux'
+					}
+					steps {
+						unstash 'app'  // unstash will retrieve the named "stash" from the Jenkins master into the Pipeline’s current workspace.
+						sh 'make check'
+					}
+					post {
+						always {
+							junit '**/target/*.xml'
+						}
+					}
+				}
+				stage('Test on Windows') {
+					agent {
+						label 'windows'
+					}
+					steps {
+						unstash 'app'
+						bat 'make check'  // The bat script allows for executing batch scripts on Windows-based platforms
+					}
+					post {
+						always {
+							junit '**/target/*.xml'
+						}
+					}
+				}
+			}
+		}
 		
-	
+USING DOCKER WITH PIPELINE
+	Practically any tool, which can be packaged in a Docker container, can be used with ease by making only minor edits to a Jenkinsfile
+		pipeline {
+			agent {
+				docker { image 'node:7-alpine' }
+			}
+			stages {
+				stage('Test') {
+					steps {
+						sh 'node --version'
+					}
+				}
+			}
+		}
+	Users can specify custom Docker Volumes to mount, which can be used for caching data on the agent between Pipeline runs. This will avoid the need to re-download dependencies for subsequent runs of the Pipeline.
+		agent {
+			docker {
+				image 'maven:3-alpine'
+				args '-v $HOME/.m2:/root/.m2'
+			}
+		}
+	Using multiple containers
+		pipeline {
+			agent none
+			stages {
+				stage('Back-end') {
+					agent {
+						docker { image 'maven:3-alpine' }
+					}
+					steps {
+						sh 'mvn --version'
+					}
+				}
+				stage('Front-end') {
+					agent {
+						docker { image 'node:7-alpine' }
+					}
+					steps {
+						sh 'node --version'
+					}
+				}
+			}
+		}
+	Specifying a Docker Label
+		By default, Pipeline assumes that any configured agent is capable of running Docker-based Pipelines. 
+		Pipeline provides a global option in the Manage Jenkins page, and on the Folder level, for specifying which agents (by Label) to use for running Docker-based Pipelines.
+		
+PIPELINE DEVELOPMENT TOOLS
+	Snippet Generator
+	Blue Ocean Pipeline Editor - The editor offers a structural view of all the stages, parallel branches, and steps in a Pipeline. The editor validates Pipeline changes as they are made, eliminating many errors before they are even committed. Behind the scenes it still generates Declarative Pipeline code.
+	Command-line Pipeline Linter - Jenkins can validate, or "lint", a Declarative Pipeline from the command line before actually running it. Linting can be done via the CLI with SSH(recommended) or  HTTP POST using curl
+		# ssh (Jenkins CLI)
+		# JENKINS_SSHD_PORT=[sshd port on master]
+		# JENKINS_HOSTNAME=[Jenkins master hostname]
+		ssh -p $JENKINS_SSHD_PORT $JENKINS_HOSTNAME declarative-linter < Jenkinsfile
+		
+"REPLAY" PIPELINE RUNS WITH MODIFICATIONS -  allows for quick modifications and execution of an existing Pipeline without changing the Pipeline configuration or creating a new commit.
+	Step -
+		Step 1. Select a previously completed run in the build history.	
+		Step 2. Click "Replay" in the left menu
+		Step 3. Make modifications to the script and click "Run"
+	Once you are satisfied with the changes, you can use Replay to view them again, copy them back to your Pipeline job or Jenkinsfile, and then commit them using your usual engineering processes.
+
+JENKINS CLI
+	The command line interface can be accessed over SSH or with the Jenkins CLI client, a .jar file distributed with Jenkins.
+	In a new Jenkins installation, the SSH service is disabled by default. Administrators may choose to set a specific port or ask Jenkins to pick a random port in the Configure Global Security page
+	In order to add an SSH public key for the appropriate user, navigate to JENKINS_URL/user/USERNAME/configure and paste an SSH public key into the appropriate text area.
+	ssh -l <USERNAME> -p <PORT> localhost help - Jenkins has a number of built-in CLI commands which can be found in every Jenkins environment, such as build or list-jobs. Plugins may also provide CLI commands; in order to determine the full list of commands available in a given Jenkins environment, execute the CLI help command
+	ssh -l <USERNAME> -p <PORT> localhost help build - One of the most common and useful CLI commands is build, which allows the user to trigger any job or Pipeline for which they have permission.
+	ssh -l <USERNAME> -p <PORT> localhost help console - Similarly useful is the console command, which retrieves the console output for the specified build or Pipeline run. When no build number is provided, the console command will output the last completed build’s console output.
+	ssh -l <USERNAME> -p <PORT> localhost help who-am-i - It is helpful for listing the current user’s credentials and permissions available to the user. This can be useful when debugging the absence of CLI commands due to the lack of certain permissions
+	Using the CLI client -
+		The CLI client can be downloaded directly from a Jenkins master at JENKINS_URL/jnlpJars/jenkins-cli.jar
+		Syntax - java -jar jenkins-cli.jar [-s JENKINS_URL] -ssh -user <USERNAME> <command>
 		
 UNIT TESTING
 	Provides a host of plugins for unit testing of other technologies such as MS Test for .net unit testing.
@@ -152,8 +363,9 @@ AUTOMATED DEPLOYMENT
 	Go-to build and configure and click on ‘deploy to war/ear to container’.
 	In the war container section save details about the destination server and click save.
 	
-https://jenkins.io/user-handbook.pdf - page 36(Using a Jenkinsfile)
-https://www.tutorialspoint.com/jenkins/
+CONFIGURATION - Jenkins Dashboard -> Manage Jenkins -> Configure System
+	https://www.tutorialspoint.com/jenkins/jenkins_configuration.htm
+	
 https://jenkins.io/doc/tutorials - do handson on google cloud
 
 
