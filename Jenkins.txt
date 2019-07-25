@@ -77,7 +77,7 @@ DIFFERENT TYPES OF JENKINS JOBS
 JENKINSFILE	- can only be used when creating pipeline-type job
 	The first line of a Jenkinsfile should be #!/usr/bin/env groovy
 	It can be written based on two syntaxes -
-		Scripted pipeline - Code is written on the Jenkins UI instance and is enclosed within the node block
+		Scripted pipeline - Code is written on the Jenkins UI instance and is enclosed within the node block (simple and easy)
 			node {
 				stage('Build') {
 					echo 'Building....'
@@ -146,23 +146,11 @@ JENKINSFILE	- can only be used when creating pipeline-type job
 		`make check` returns non-zero on test failures
 		Pipeline will only continue if a zero exit code is returned by the 'sh' command. Any non-zero exit code will fail the Pipeline. Inline shell conditional (sh 'make || true') ensures that the sh step always sees a zero exit code.
 		The "Deploy" stage will only execute assuming previous stages completed successfully, otherwise the Pipeline would have exited early. Accessing the currentBuild.result variable allows the Pipeline to determine if there were any test failures. In which case, the value would be UNSTABLE.
-			Declarative Pipeline
-				stage('Deploy') {
-					when {
-						expression {
-							currentBuild.result == null || currentBuild.result == 'SUCCESS'
-						}
-					}
-					steps {
-						sh 'make publish'
-					}
+			stage('Deploy') {  // Script Pipeline
+				if (currentBuild.result == null || currentBuild.result == 'SUCCESS') {
+					sh 'make publish'
 				}
-			Script Pipeline
-				stage('Deploy') {
-					if (currentBuild.result == null || currentBuild.result == 'SUCCESS') {
-						sh 'make publish'
-					}
-				}
+			}
 				
 ADVANCED SYNTAX FOR PIPELINE
 	String Interpolation -
@@ -171,128 +159,78 @@ ADVANCED SYNTAX FOR PIPELINE
 		echo "I said, Hello Mr. ${username}"  #=> I said, Hello Mr. Jenkins
 	Working with the Environment - 
 		Jenkins Pipeline exposes environment variables via the global variable env, which is available from anywhere within a Jenkinsfile. ex- env.BUILD_ID, env.JOB_NAME, env.JENKINS_URL
-		Setting an environment variable within a Jenkins Pipeline for -
-			Declarative Pipeline - supports an environment directive. An environment directive used in the top-level pipeline block will apply to all steps within the Pipeline. An environment directive defined within a stage will only apply the given environment variables to steps within the stage
-				environment {
-					CC = 'clang'
-				}
-			Script Pipeline - must use the withEnv step
-				withEnv(["PATH+MAVEN=${tool 'M3'}/bin"]) {
-					sh 'mvn -B verify'
-				}
-	Parameters - Declarative Pipeline supports parameters out-of-the-box, allowing the Pipeline to accept user specified parameters at runtime via the parameters directive. Configuring parameters with Scripted Pipeline is done with the properties step, which can be found in the Snippet Generator
-		Declarative Pipeline
-			parameters {
-				string(name: 'Greeting', defaultValue: 'Hello', description: 'How should I greet the world?')
+		Setting an environment variable within a Jenkins Pipeline for Script Pipeline (must use the withEnv step) -
+			withEnv(["PATH=${tool 'M3'}/bin"]) {
+				sh 'mvn -B verify'
 			}
-			....
-			echo "${params.Greeting} World!"
-		Script Pipeline
-			properties([parameters([string(defaultValue: 'Hello', description: 'How should I greet the world?', name: 'Greeting')])])
-	Handling Failures -
-		Declarative Pipeline supports robust failure handling by default via its post section which allows declaring a number of different "post conditions" such as: always, unstable, success, failure, and changed
-			stages { ... }
-			post {
-				always {
-					junit '**/target/*.xml'
-				}
-				failure {
-					mail to: team@example.com, subject: 'The Pipeline failed :('
-				}
+	Parameters - Configuring parameters with Scripted Pipeline is done with the properties step, which can be found in the Snippet Generator
+		properties([parameters([string(defaultValue: 'Hello', description: 'How should I greet the world?', name: 'Greeting')])])
+		....
+		echo "${params.Greeting} World!"
+	Handling Failures - Scripted Pipeline however relies on Groovy’s built-in try/catch/finally semantics for handling failures during execution of the Pipeline.
+		stage('Test') {
+			try {
+				sh 'make check'
 			}
-		Scripted Pipeline however relies on Groovy’s built-in try/catch/finally semantics for handling failures during execution of the Pipeline.
-			stage('Test') {
+			finally {
+				junit '**/target/*.xml'
+			}
+		}
+		In the [test] example above, the sh step was modified to never return a non-zero exit code (sh 'make check || true'). This approach, while valid, means the following stages need to check currentBuild.result to know if there has been a test failure or not. An alternative way of handling this, which preserves the early-exit behavior of failures in Pipeline, while still giving junit the chance to capture test reports, is to use a series of try /finally blocks
+	Using multiple agents
+		stage('Build') {
+			node {
+				checkout scm
+				sh 'make'
+				stash includes: '**/target/*.jar', name: 'app'   // The stash step allows capturing files matching an inclusion pattern (*/target/.jar) for reuse within the same Pipeline. Once the Pipeline has completed its execution, stashed files are deleted from the Jenkins master.
+			}
+		}
+		stage('Test') {
+			node('linux') {  // linux is a label
+				checkout scm
 				try {
+					unstash 'app'  // unstash will retrieve the named "stash" from the Jenkins master into the Pipeline’s current workspace
 					sh 'make check'
 				}
 				finally {
 					junit '**/target/*.xml'
 				}
 			}
-		In the [test] example above, the sh step was modified to never return a non-zero exit code (sh 'make check || true'). This approach, while valid, means the following stages need to check currentBuild.result to know if there has been a test failure or not. An alternative way of handling this, which preserves the early-exit behavior of failures in Pipeline, while still giving junit the chance to capture test reports, is to use a series of try /finally blocks
-	Using multiple agents
-		pipeline {  // declarative pipeline
-			agent none
-			stages {
-				stage('Build') {
-					agent any
-					steps {
-						checkout scm
-						sh 'make'
-						stash includes: '**/target/*.jar', name: 'app'  // The stash step allows capturing files matching an inclusion pattern (*/target/.jar) for reuse within the same Pipeline. Once the Pipeline has completed its execution, stashed files are deleted from the Jenkins master.
-					}
+			node('windows') {
+				checkout scm
+				try {
+					unstash 'app'
+					bat 'make check'  // The bat script allows for executing batch scripts on Windows-based platforms
 				}
-				stage('Test on Linux') {
-					agent {
-						label 'linux'
-					}
-					steps {
-						unstash 'app'  // unstash will retrieve the named "stash" from the Jenkins master into the Pipeline’s current workspace.
-						sh 'make check'
-					}
-					post {
-						always {
-							junit '**/target/*.xml'
-						}
-					}
-				}
-				stage('Test on Windows') {
-					agent {
-						label 'windows'
-					}
-					steps {
-						unstash 'app'
-						bat 'make check'  // The bat script allows for executing batch scripts on Windows-based platforms
-					}
-					post {
-						always {
-							junit '**/target/*.xml'
-						}
-					}
+				finally {
+					junit '**/target/*.xml'
 				}
 			}
 		}
 		
 USING DOCKER WITH PIPELINE
 	Practically any tool, which can be packaged in a Docker container, can be used with ease by making only minor edits to a Jenkinsfile
-		pipeline {
-			agent {
-				docker { image 'node:7-alpine' }
-			}
-			stages {
+		node {
+			/* Requires the Docker Pipeline plugin to be installed */
+			docker.image('node:7-alpine').inside {
 				stage('Test') {
-					steps {
-						sh 'node --version'
-					}
+					sh 'node --version'
 				}
 			}
 		}
 	Users can specify custom Docker Volumes to mount, which can be used for caching data on the agent between Pipeline runs. This will avoid the need to re-download dependencies for subsequent runs of the Pipeline.
-		agent {
-			docker {
-				image 'maven:3-alpine'
-				args '-v $HOME/.m2:/root/.m2'
-			}
-		}
+		docker.image('maven:3-alpine').inside('-v $HOME/.m2:/root/.m2')
 	Using multiple containers
-		pipeline {
-			agent none
-			stages {
-				stage('Back-end') {
-					agent {
-						docker { image 'maven:3-alpine' }
-					}
-					steps {
-						sh 'mvn --version'
-					}
+		node {
+			/* Requires the Docker Pipeline plugin to be installed */
+			stage('Back-end') {
+				docker.image('maven:3-alpine').inside {
+					sh 'mvn --version'
 				}
-				stage('Front-end') {
-					agent {
-						docker { image 'node:7-alpine' }
-					}
-					steps {
-						sh 'node --version'
-					}
+			}
+			stage('Front-end') {
+				docker.image('node:7-alpine').inside {
+					sh 'node --version'
 				}
 			}
 		}
@@ -364,39 +302,98 @@ AUTOMATED DEPLOYMENT
 	In the war container section save details about the destination server and click save.
 	
 CONFIGURATION - Jenkins Dashboard -> Manage Jenkins -> Configure System
-	https://www.tutorialspoint.com/jenkins/jenkins_configuration.htm
+	Jenkins Home Directory - Jenkins needs some disk space to perform builds and keep archives. By default, this is set to ~/.jenkins. To change the location, first create a new folder and copy all the contents from the existing ~/.jenkins to this new directory, and then set the JENKINS_HOME environment variable
+	# of executors - This refers to the total number of concurrent job executions that can take place on the Jenkins machine. Sometimes the recommendation is to keep this number the same as the number of CPU on the machines for better performance
+	Environment Variables - This is used to add custom environment variables which will apply to all the jobs. These are key-value pairs and can be accessed and used in Builds wherever required.
+	Jenkins URL - By default, the Jenkins URL points to localhost. Can be accessed using the environment variable JENKINS_URL 
+	Email Notification -  used to configure the SMTP settings for sending out emails.
+	
+MANAGEMENT - Jenkins Dashboard -> Manage Jenkins
+	Configure System - This is where one can manage paths to the various tools to use in builds, such as the JDKs, the versions of Ant and Maven, as well as security options, email servers, and other system-wide configuration details. When plugins are installed. Jenkins will add the required configuration fields dynamically after the plugins are installed.
+	Reload Configuration from Disk - Jenkins stores all its system and build job configuration details as XML files which is stored in the Jenkins home directory. Here also all of the build history is stored. If you are migrating build jobs from one Jenkins instance to another, or archiving old build jobs, you will need to add or remove the corresponding build job directories to Jenkins’s builds directory.
+	Manage Plugin - Here one can install a wide variety of third-party plugins right from different Source code management tools such as Git, Mercurial or ClearCase, to code quality and code coverage metrics reporting. Plugins can be installed, updated and removed through the Manage Plugins screen
+	System Information - This screen displays a list of all the current Java system properties and system environment variables
+	System Log - The System Log screen is a convenient way to view the Jenkins log files in real time. Again, the main use of this screen is for troubleshooting.
+	Load Statistics - This pages displays graphical data on how busy the Jenkins instance is in terms of the number of concurrent builds and the length of the build queue 
+	Script Console - This screen lets you run Groovy scripts on the server. It is useful for advanced troubleshooting since it requires a strong knowledge of the internal Jenkins architecture.
+	Manage nodes - Jenkins is capable of handling parallel and distributed builds. A node is another machine that Jenkins can use to execute its builds.
+	Prepare for Shutdown - If there is a need to shut down Jenkins, or the server Jenkins is running on, it is best not to do so when a build is being executed. To shut down Jenkins cleanly, you can use the Prepare for Shutdown link, which prevents any new builds from being started. Eventually, when all of the current builds have finished, one will be able to shut down Jenkins cleanly.
+	
+UNIT TESTING
+	Jenkins provides an out of box functionality for Junit, and provides a host of plugins for unit testing for other technologies, an example being MSTest for .Net Unit tests.
+	Example of a Junit Test -
+		Go to the Jenkins dashboard and Click on the existing HelloWorld project and choose the Configure option
+		Browse to the section to Add a Build step and choose the option to Invoke Ant. Click on the Advanced button and in the build file section, enter the location of the build.xml file
+		Next click the option to Add post-build option and choose the option of “Publish Junit test result report” and provide the path for the test report XMLs(eg- Reports/*.xml)
+		Once saved, you can click on the Build Now option. Once the build is completed, a status of the build will show if the build was successful or not. In the Build output information, you will now notice an additional section called Test Result
+		
+AUTOMATED TESTING
+	Example of Selenium -
+		Go to Manage Plugin. Find the Hudson Selenium Plugin and choose to install. Restart the Jenkins instance.
+		Go to Configure System. Configure the selenium server jar and click on the Save button
+		Go back to your dashboard and click on the Configure option for the HelloWorld project.
+		Click on Add build step and choose the option of “SeleniumHQ htmlSuite Run”
+
+NOTIFICATION	
+	Steps
+		Goto Manage Jenkins → Configure System. Go to the E-mail notification section and enter the required SMTP server and user email-suffix details.
+		Under post-build section, configure the recipients
+	Apart from the default, there are also notification plugin’s available in the market. An example is the notification plugin from Tikal Knowledge which allows sending Job Status notifications in JSON and XML formats
+	
+REPORTING
+	There are many reporting plugins available with the simplest one being the reports available for jUnit tests.
+	In the Post-build action for any job, you can define the reports to be created. After the builds are complete, the Test Results option will be available for further drill-down.
+	
+CODE ANALYSIS
+	Jenkins has a host of Code Analysis plugin. This plugin provides utilities for the static code analysis plugins. Jenkins can parse the results file from various Code Analysis tools such as CheckStyle, FindBugs, PMD etc. For each corresponding code analysis tool, a plugin in Jenkins needs to be installed.
+	Additionally the add-on plugin Static Analysis Collector is available that combines the individual results of these plugins into a single trend graph and view.
+	
+DISTRIBUTED BUILDS
+	One can configure other Jenkins machines to be slave machines to take the load off the master Jenkins server.
+	Sometimes you might also need several different environments to test your builds. In this case using a slave to represent each of your required environments is almost a must.
+	Since each slave runs a separate program called a "slave agent" there is no need to install the full Jenkins (package or compiled binaries) on a slave. There are various ways to start slave agents, but in the end the slave agent and Jenkins master needs to establish a bi-directional communication link (for example a TCP/IP socket.) in order to operate.
+	To set up slaves/nodes in Jenkins -
+		1. Manage Jenkins -> Manage Nodes
+		2. Click on New Node. Give a name for the node, choose the Dumb slave option and click OK
+		3. Enter the details(such as No. of executor, remote root directory, label, launch method. etc) of the node slave machine. Once saved, the new node machine will initially be in an offline state, but will come online if all the settings provided were correct. One can at any time make the node slave machine as offline if required.
+		
+AUTOMATED DEPLOYMENT
+	There are many plugins available which can be used to transfer the build files, after a successful build, to the respective application/web server. 
+	On example is the “Deploy to container Plugin”. To use this follow the steps given below -
+		1. Manage Jenkins → Manage Plugins. Search 'Deploy to container Plugin' and install the plugin. Restart the Jenkins server. This plugin takes a war/ear file and deploys that to a running remote application server(Tomcat)
+		2. Go to your Build project and click the Configure option. Choose the option “Deploy war/ear to a container” under 'Post Build Action'.
+		3. In the Deploy war/ear to a container section, enter the required details of the server on which the files need to be deployed and click on the Save button. These steps will now ensure that the necessary files get deployed to the necessary container after a successful build.
+		
+METRICS AND TRENDS
+	There are various plugins which are available in Jenkins to showcase metrics for builds which are carried out over a period of time. 
+	These metrics are useful to understand your builds and how frequently they fail/pass over time. ex- ‘Build History Metrics plugin’, 'Hudson global-build-stats plugin'
+	
+SECURITY
+	In Jenkins you have the ability to setup users and their relevant permissions on the Jenkins instance. By default you will not want everyone to be able to define jobs or other administrative tasks in Jenkins. So Jenkins has the ability to have a security configuration in place
+	To configure Security in Jenkins, follow the steps -
+		1. Manage Jenkins -> Configure Global Security
+		2. Click on Enable Security option. As an example, let’s assume that we want Jenkins to maintain it’s own database of users, so in the Security Realm, choose the option of ‘Jenkins’ own user database’.
+		3. Now you can add admin users
+		4. It’s now time to setup your users in the system. Go to Manage Jenkins -> Manage Users
+		5. Just like you defined your admin user, start creating other users for the system
+		6. Now it’s time to setup your authorizations, basically who has access to what. Go to Manage Jenkins -> Configure Global Security -> Authorization -> Matrix based security
+		7. If you don’t see the user in the user group list, enter the user name and add it to the list. Then give the appropriate permissions to the user
+	For Windows AD authentication, one has to add the Active Directory plugin to Jenkins.
+	
+BACKUP PLUGIN
+	Steps
+		1. Add ‘Backup Plugin’. Once done, restart the Jenkins instance
+		2. Now when you go to Manage Jenkins, and scroll down you will see ‘Backup Manager’ as an option. Click on this option.
+		3. Click on Setup
+		4. Here, the main field to define is the directory for your backup. Ensure it’s on another drive which is different from the drive where your Jenkins instance is setup. Click on the Save button.
+		5. Click on the ‘Backup Hudson configuration’ from the Backup manager screen to initiate the backup.
+	To recover from a backup, go to the Backup Manager screen, click on Restore Hudson configuration. The list of backup’s will be shown, click on the appropriate one to click on Launch Restore to begin the restoration of the backup.
+	
+REMOTE TESTING
+	Web tests such as selenium tests can be run on remote slave machines via the master slave and selenium suite plugin installation. The following steps show how to run remote tests using this configuration -
+	1. Ensure for the slave node, the launch method is put as ‘Launch slave agents via Java Web Start’
+	2. Open slave Jenkins instance(<slave_url>:<slave_port>) on the slave node. 
+	3. On slave jenkins instance go to Manage Jenkins -> Manage Nodes -> <slave node>. Scroll down and you will see the Launch option which is the option to Start ‘Java Web Start’. You will now see a Jenkins Slave window opened and now connected.
+	4. Run the job on the Master node.
 	
 https://jenkins.io/doc/tutorials - do handson on google cloud
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
