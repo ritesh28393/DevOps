@@ -1,0 +1,50 @@
+SUMMARY - 
+	A Passionate technical architect and contributor, specializing in DevOps \ Cloud Automation and integration, with a unique creative ability to map the needs of the business to the technology. Over 12 years of DevOps and Infrastructure engineering. Expert level knowledge of Chef, Puppet and other automation tools, as well as extensive experience designing and integrating both private and public cloud solutions
+	Has ample of experience in DevOps stream and prime area of work has been in managing and monitoring infrastructure and implementing CICD pipeline with knowledge of Azure. Have been working on Continuous Development, Continuous Integration, Continuous Testing, Continuous Delivery
+	
+Certification on Exam AZ-103: Microsoft Azure Administrator. Certified as Azure Administrator Associate
+Participated in Converge2.0 Hackathon Azure DevOps
+internal certifications and training -
+	Developing Microsoft Azure Solutions
+	Azure - An Overview for Sales Delivery Leaders
+	Introduction to DevOps
+	Introduction to Cloud Computing
+	Agile Scrum in practice
+
+TEMS - Developer - Test Environment Management Service assists the software testing cycle by providing a validated, stable and usable test environment to execute the test scenarios. TEMS comes into picture since the test environments are continuously evolving and it becomes a task for someone to own the test environment configuration and its usage details. TEMS enables organizations to speed up their software release schedules by up to 20-25%, cut infrastructure costs by 5-10% and increase team productivity by up to 30-40%.
+	Knowledge of Change Management and Environment Management. Created portals to capture the conflicts beforehand
+	Worked on ASP.NET framework with C#, along with asynchronous trigger elements(AJAX), API, Angular, JQuery, HTML5 Canvas Chart, CSS Animation
+	Integrated web pages with JIRA API
+	Created Windows Application to read, process and write CSV files
+	Created table, function, procedure, trigger in SQL Server
+	Created Script to back up SQL Server Database
+	Good grasp of Visual Studio IDE. Aware with the debugging concept and process
+	Deployed web service along with database on Azure portal and as well as on-premise IIS server and SQL Server
+HPaaS VPC - Automation - Hybrid Platform as a Service establishes a service brokerage model whereby application owners and developers are presented a catalog of infrastructure services and patterns they can use for their own requirements. Standardizing the way infrastructure is ordered and provisioned is intended to cut significant effort and cost from the process.
+	Wrote script using Azure PowerShell to retrieve configuration information of the Azure resources in Azure Resource Manager model
+	Used Gherkin BDD testing framework, a domain specific language, which helps to describe business behavior without the need to go into detail of implementation
+	Well versed with the architecture and the syntax of Gherkin. Feature, Background, Scenario, Given, When, Then, And But are important keyword used in Gherkin.
+	Worked on Azure DevOps(VSTS) to upload script, collaborate, perform regression testing and publish test result
+	Worked on Azure Pipelines to perform regression testing and publish result on Wiki page using CI/CD principle.
+	Worked on Azure Repos push, collaborate, manage and pull source script files using GIT
+	Good grasp of VS Code
+Venafi - QA Analyst
+	Good exposure to various SDLC models including Agile (Scrum), Water Fall models.
+	Well versed with Software Testing Life Cycle.
+	Proficient in creating Test Plans, Test Scenarios, Test Cases based on the Business Requirement documents, and Functional Requirement Specifications.
+	Experienced in Functional Testing, Regression Testing, Browser compatibility testing and User Acceptance Testing (UAT).
+	Sound knowledge of test management tool HP Application LifeCycle Management
+	Exposure to Test Analysis - what to test manually vs. what to Automate.
+	Strong analytical skills, ability to understand applications from a technical as well as business perspective.	
+DevOps Engineer - Created a solution using Azure and DevOps tools - GitHub, Jenkins, Chef, and Docker and Bash Scripting - to deliver scalable, reliable and containerized Java web application with agility using micro-service approach
+	Good exposure to manage Azure - subscriptions, resources, tagging, role based access control (RBAC), policies.
+	Knowledge of monitoring Azure using Alert, Metrics, Log Analytics, Activity Log, Diagnostic Log
+	Knowledge of managing Azure storage - configure network access, shared access signature, replication, content delivery network (CDN) endpoints, Recovery Services Vault, Backup policies
+	Knowledge of deploying and managing Azure VM - ARM template, Scale set, data discs, n/w interface, high availability
+	Knowledge of configuring and managing Azure Virtual Networks - VNET peering, VNET to VNET, virtual network gateway, Azure DNS, Network Security Group (NSG), load balancer
+	Knowledge of managing identities - Azure Active Directory, users and groups and devices, guest accounts, Azure AD Connect, multi-factor authentication
+	Good knowledge of GIT and GitHub
+	Hands-on Jenkins tool to build GitHub source code and to push package wrapped in Docker Container to Docker Repository
+	Used Chef to scale up and down Virtual Machines with Docker already installed on it
+	Used Docker to isolate environments and configure applications on it
+	Experience with Bash Scripting	
